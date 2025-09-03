@@ -22,11 +22,18 @@ rd.seed(100)
 
 def create_random_positions(n):
     """
-    Funksjon som lager en array med N posisjons-vektorer [x, y, z].
+    Funksjon som lager en array med n posisjons-vektorer [x, y, z].
     Komponentene blir tilfeldig valgt med en uniform fordeling innenfor
     'boksen' vår.
     """
     return np.random.uniform(x1, x2, (n, 3))
+
+def påfyll():
+    eps = 1e-12
+    x = np.random.uniform(x1, x2)
+    y = np.random.uniform(x1, x2)
+    posisjon = np.array([x, y, L-eps])
+    return posisjon
 
 posisjoner = create_random_positions(N) 
 
@@ -44,17 +51,22 @@ def create_random_velocities(n):
 
 hastigheter = create_random_velocities(N)
 
+def summerer_fart(hastigheter, partikkel_rømming):
+    norm = sum(hastigheter[partikkel_rømming])
 
+    if isinstance(norm, np.ndarray):
+        z_norm = abs(norm[2])
+        return z_norm
+    else:
+        return 0
 
 # Third step: Follow the movements of the gass particles with time
 # =======================================
 t = 0
 dt = 1e-12
 T = 1e-9
+F = 0
 # ========================================
-
-mask = posisjoner[:, 2] < 0
-norm = sum(mask)
 
 
 while t < T:
@@ -64,20 +76,27 @@ while t < T:
         kollisjon_bunn[i][2] = False
     
 
-    
-    hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
+    partikkel_rømming = posisjoner[:, 2] < 0
+    norm = summerer_fart(hastigheter, partikkel_rømming)
 
-    mask = posisjoner[:, 2] < 0
-    norm = sum(mask)
-    F = 2*m*norm / dt
+
+    F += 2*m*norm / dt
+
+    hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
 
     posisjoner += hastigheter*dt
 
+    posisjoner[partikkel_rømming] = påfyll()
+    hastigheter[partikkel_rømming] = create_random_velocities(1)
+
     t += dt
 
-print(posisjoner)
-print(hastigheter)
+antall = 2.5e13
+print(f"Areal til liten boks er {L**2} boksen er {(L*antall)*L} og {L**2 *antall}")
+F *= antall
 print(F)
+
+
 
 
 
