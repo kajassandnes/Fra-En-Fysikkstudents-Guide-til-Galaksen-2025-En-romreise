@@ -6,15 +6,18 @@ import random as rd
 
 # ========== Konstanter ======================================
 N = 100           # number off particles in engine
-L = 1 * 10**(-6)    # length of box (m)
-T = 3 * 10**3       # temperature (K)
+L = 1e-6         # length of box (m)
+T = 3e3       # temperature (K)
 k = const.k_B      # Boltzmann-konstanten
 x1, x2 = 0, L     # start og slutt
+m = const.m_H2  # masse til hydrogenmolekyl
+mean = 0    
+sigma = np.sqrt(k*T/m)
 # ============================================================
 
 
-
 # First step: simulate random positions to the N particles 
+
 rd.seed(100)
 
 def create_random_positions(n):
@@ -25,15 +28,12 @@ def create_random_positions(n):
     """
     return np.random.uniform(x1, x2, (n, 3))
 
-
 posisjoner = create_random_positions(N) 
 
 
 
 
 # Second step: Generate random velocities in each directions for all the particles
-mean = 0    
-sigma = np.sqrt(k*T/const.m_H2)
 
 def create_random_velocities(n):
     """
@@ -46,33 +46,55 @@ hastigheter = create_random_velocities(N)
 
 
 
-
 # Third step: Follow the movements of the gass particles with time
+# =======================================
 t = 0
-dt = 10**(-12)
-T = 10**(-9)
-v_array = np.zeros(len(hastigheter)*3)
+dt = 1e-12
+T = 1e-9
+# ========================================
 
-def sjekk(position, velocity):
-    if position >= L:
-        v_array[np.where(v_array == 0)[0]]
-        return (-1) * velocity
-    else:
-        return velocity
+mask = posisjoner[:, 2] < 0
+norm = sum(mask)
+
 
 while t < T:
-    for i in range(len(hastigheter)):
-        hastigheter[i][0] = sjekk(posisjoner[i][0], hastigheter[i][0])
-        hastigheter[i][1] = sjekk(posisjoner[i][1], hastigheter[i][1])
-        hastigheter[i][2] = sjekk(posisjoner[i][2], hastigheter[i][2])
+    kollisjon_topp = posisjoner > L
+    kollisjon_bunn = posisjoner < 0
+    for i in range(len(posisjoner)):
+        kollisjon_bunn[i][2] = False
+    
 
-    posisjoner[i][0] += hastigheter[i][0]*dt
-    posisjoner[i][1] += hastigheter[i][1]*dt
-    posisjoner[i][2] += hastigheter[i][2]*dt
+    
+    hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
+
+    mask = posisjoner[:, 2] < 0
+    norm = sum(mask)
+    F = 2*m*norm / dt
+
+    posisjoner += hastigheter*dt
 
     t += dt
 
 print(posisjoner)
 print(hastigheter)
-print(v_array)
+print(F)
 
+
+
+
+# Vi skal sammenligne middel-energi, trykk, og middel-hastighet
+# numerisk mot analytisk
+
+def energi():
+    pass
+
+def trykk():
+    pass
+
+def hastighet():
+    pass
+
+
+
+# Trykke: Regne ut kreftene
+# dp/dt: 
