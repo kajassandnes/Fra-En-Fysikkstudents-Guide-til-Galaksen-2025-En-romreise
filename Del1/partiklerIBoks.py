@@ -42,28 +42,35 @@ for _ in range(steg):
     "Når partikkelen går forbi veggen vil vi at den skal gå tilbake innenfor veggen med en avstand som tilsvarer det den dro utenfor L"
     #r[mask_høyre] = L - r[mask_høyre]
     "Oppdaterer hastigheten, hvis høyre eller venstre maske er oversteget L eller 0 vil fartskomponenten flippes"
-    v[mask_venstre | mask_høyre] *= -1
+    #v[mask_venstre | mask_høyre] *= -1
+    v[mask_venstre[:,0] | mask_høyre[:,0],0] *= (-1)
+    v[mask_venstre[:,1] | mask_høyre[:,1],1] *= (-1)
+    v[mask_venstre[:,2] | mask_høyre[:,2],2] *= (-1)
     #--------
     "Nå skal vi introdusere en åpning i boksen"
-    "Da må vi sjekke om 0.25L < r,y < 0.75L OG at z=0. Da vil partikkelen kunne unnslippe og gi en kraft til raketten"
-    "Dette gjør vi vektorisert med numpy for å spare tid"
-    mask = r < 0
-    norm = 0
-    for i in range(len(mask)):
-        norm += mask[i][2]
+    "Da må vi at z=0. Da vil partikkelen kunne unnslippe og gi en kraft til raketten"
+    
+    mask = r[:,2] < 0
     "Nå har vi alle partiklene per gjennomkjøring som har forlatt gasskammeret (boksen) vår"
     "Nå må vi hente ut hastigheten herfra og regne drivet. Som er normalt på utgangsveggen (z-veggen)"
     #v_norm = v[mask2]
-  
+    "Alle partiklene som flyr ut skal erstattes av partikler som blir uniformt fordelt i toppen av boksen med tilfeldig hastighet"
+    N_out = np.sum(mask)
+    v_norm = v[mask, 2]
     #endringen i driv per partikkel
-    delta_p = 2*m *norm
+    "partiklene beveger seg i negativ z-retning, derfor minus"
+    delta_p = - 2*m *v_norm
     #Kraft på veggen i dette tidssteget
     F += np.sum(delta_p) / dt
     #print(v_norm)
+    r[mask] = np.random.uniform([0,0,L-eps], [L,L,L-eps], size=(N_out,3))
+    v[mask] = np.random.normal(0, STD, size=(N_out,3))
 
-
-print(F*10000000000)
-
+antallBokser = 2.5e13
+rakettmotorAreal = (L**2)*antallBokser
+print(f'---------')
+print(f'Rakettmotorens areal: {rakettmotorAreal} m^2')
+print(f'Mengde kraft fra motor: {F*antallBokser:.1f} N')
 
 
 #(r[:,0] > 0.25*L) & (r[:,0] < 0.75*L) & #at r-komponent er innenfor hullet i r retning
