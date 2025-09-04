@@ -99,38 +99,56 @@ def summerer_fart(hastigheter: list[float], partikkel_rømming: list[True | Fals
     else:
         return 0
 
+
 # Third step: Follow the movements of the gass particles with time
 # =======================================
 t = 0
 dt = 1e-12
 T_tot = 1e-9
 F = 0
+antall = 2.5e12
 # ========================================
 
+def kraft():
+    """
+    Regner ut kraften partiklene i én enkelt boks med lengde 10⁻⁶ produserer
+    og ganger det med 2.5*10¹². Da får motoren et areal på 2.5 m². 
 
-while t < T_tot:
-    kollisjon_topp = posisjoner > L
-    kollisjon_bunn = posisjoner < 0
-    for i in range(len(posisjoner)):
-        kollisjon_bunn[i][2] = False
+    Parametere:
+    t, dt, T_tot (float): starttid, tidssteg, total tid
+    F (float): kraften
+    posisjoner, hastigheter (list(n, 3)): sier seg selv
+    L (float): lengde til boksen
+    antall (int): antall bokser vi skal gange krafta med
+    """
+    global t, F, T_tot, dt, posisjoner, hastigheter, L, antall
+    while t < T_tot:
+        kollisjon_topp = posisjoner > L
+        kollisjon_bunn = posisjoner < 0
+        for i in range(len(posisjoner)):
+            kollisjon_bunn[i][2] = False
+        
+
+        partikkel_rømming = posisjoner[:, 2] < 0
+        norm = summerer_fart(hastigheter, partikkel_rømming)
+
+        F += 2*m*norm / dt
+
+        hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
+
+        posisjoner += hastigheter*dt
+
+        posisjoner[partikkel_rømming] = påfyll()
+        hastigheter[partikkel_rømming] = create_random_velocities(1)
+
+        t += dt
     
-
-    partikkel_rømming = posisjoner[:, 2] < 0
-    norm = summerer_fart(hastigheter, partikkel_rømming)
-
-    F += 2*m*norm / dt
-
-    hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
-
-    posisjoner += hastigheter*dt
-
-    posisjoner[partikkel_rømming] = påfyll()
-    hastigheter[partikkel_rømming] = create_random_velocities(1)
-
-    t += dt
+    F *= antall
+    return F
 
 
-
+F_1 = kraft()
+print(F_1)
 
 
 
@@ -138,26 +156,36 @@ while t < T_tot:
 # Vi skal sammenligne middel-energi, trykk, og middel-hastighet
 # numerisk mot analytisk
 def P_v_vec(v):
+    """
+    Maxwell-Boltzmann-funksjonen for hastighetskomponentene. 
+    """
     return (m/(2*np.pi*k*T))**(1/2) *  np.e**((-1/2)*(m*v**2)/(k*T))
 
 
 def energi():
     pass
 
-def trykk():
+def trykk():    
     pass
 
 
 def plot_hastighet(hastigheter):
+    """
+    Plotter analytisk hastighet mot numerisk hastighet. 
+    """
     vx = hastigheter[:,0]
     v_x = np.arange(min(vx)-1000, max(vx)+1000, 30)
 
     plt.plot(v_x, P_v_vec(v_x), label="Analytisk normalkurve")
-    plt.hist(vx, bins=10, density=True, alpha=0.5, label='numerisk farter')
+    plt.hist(vx, bins=10, density=True, alpha=0.3, edgecolor="black", label='numerisk farter')
+    plt.xlabel("Hastighet [m/s]")
+    plt.ylabel("Sannsynlighet")
+    plt.title("Analytiske mot numeriske hastigheter")
     plt.legend()
     plt.show()
 
     
+plot_hastighet(hastigheter)
 
 
 
