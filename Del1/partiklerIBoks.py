@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import ast2000tools.constants as const
 #konstantene
 L = 1e-6 #m
-N = 100 #antall hydrogenmolekyler i boksen
+N = 1000 #antall hydrogenmolekyler i boksen
 k = const.k_B #boltzmanns konstant
 T = 3*1e3
 m = const.m_H2
@@ -71,6 +71,25 @@ rakettmotorAreal = (L**2)*antallBokser
 print(f'---------')
 print(f'Rakettmotorens areal: {rakettmotorAreal} m^2')
 print(f'Mengde kraft fra motor: {F*antallBokser:.1f} N')
+
+
+def P(v):
+    return (m/(2*np.pi*const.k_B*T))**(-1/2) * np.e**((-1/2)*(m*v**2)/(const.k_B*T))
+
+v_a = np.arange(-1.5e4,1.5e4,30)
+v_n = v
+
+#plt.hist(v_n,bins=25,histtype="step",density=True, label="Numerisk")
+plt.plot(v_a,P(v_a)[:,0], label="Analytisk")
+plt.grid(axis='y', alpha=0.3)
+plt.xlabel("Hastigheter [m/s]")
+plt.ylabel("Sannsynlighet")
+plt.title("Numerisk mot Analytiske hastigheter")
+
+
+plt.legend()
+plt.show()
+
 
 
 #(r[:,0] > 0.25*L) & (r[:,0] < 0.75*L) & #at r-komponent er innenfor hullet i r retning
