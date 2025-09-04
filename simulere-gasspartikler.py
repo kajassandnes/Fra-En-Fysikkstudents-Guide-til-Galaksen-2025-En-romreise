@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 # ========== Konstanter ======================================
-N = 1000           # number off particles in engine
+N = 100000           # number off particles in engine
 L = 1e-6         # length of box (m)
 T = 3e3          # temperature (K)
 k = const.k_B      # Boltzmann-konstanten
@@ -106,7 +106,8 @@ t = 0
 dt = 1e-12
 T_tot = 1e-9
 F = 0
-antall = 2.5e12
+antall = 7e12
+pz = 0
 # ========================================
 
 def kraft():
@@ -121,18 +122,17 @@ def kraft():
     L (float): lengde til boksen
     antall (int): antall bokser vi skal gange krafta med
     """
-    global t, F, T_tot, dt, posisjoner, hastigheter, L, antall
+    global t, F, T_tot, dt, posisjoner, hastigheter, L, pz
     while t < T_tot:
         kollisjon_topp = posisjoner > L
         kollisjon_bunn = posisjoner < 0
-        for i in range(len(posisjoner)):
-            kollisjon_bunn[i][2] = False
+        kollisjon_bunn[:, 2] = False
         
 
         partikkel_rømming = posisjoner[:, 2] < 0
         norm = summerer_fart(hastigheter, partikkel_rømming)
 
-        F += 2*m*norm / dt
+        pz += 2*m*norm
 
         hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
 
@@ -142,13 +142,13 @@ def kraft():
         hastigheter[partikkel_rømming] = create_random_velocities(1)
 
         t += dt
-    
-    F *= antall
+    F = pz / T_tot
+
     return F
 
 
-F_1 = kraft()
-print(F_1)
+F_1 = kraft()*antall
+print(f"Total kraft er {F_1}, og areal {L**2 * antall}")
 
 
 
@@ -159,19 +159,70 @@ def P_v_vec(v):
     """
     Maxwell-Boltzmann-funksjonen for hastighetskomponentene. 
     """
-    return (m/(2*np.pi*k*T))**(1/2) *  np.e**((-1/2)*(m*v**2)/(k*T))
+    return (m/(2*np.pi*k*T))**(1/2) *  np.exp((-1/2)*(m*v**2)/(k*T))
 
-
-def energi():
-    pass
-
-def trykk():    
-    pass
-
-
-def plot_hastighet(hastigheter):
+def P_v_abs(v):
     """
-    Plotter analytisk hastighet mot numerisk hastighet. 
+    Maxwell-Boltzmann-funksjonen for absolutt hastighet. 
+    """
+    return (m/(2*np.pi*k*T))**(3/2) *  np.exp((-1/2)*(m*v**2)/(k*T)) * 4 * np.pi * v**2
+
+def v_kvadrert_middel_numerisk():
+    global hastigheter
+    v = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
+    s = v**2 * P_v_abs(v)
+    v_mid = sum(s)/len(v)
+    return v_mid
+
+def v_middel_numerisk():
+    v1 = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
+    v2 = sum(v1)/len(v1)
+    return v2
+
+def v_middel_analytisk():
+    return 2 * np.pi**(-1/2) * np.sqrt((2*k*T) / m)
+
+def energi_analytical():
+    E = 3/2*k*T
+    return E
+    
+def energi_numerical():
+    v_mid_kvadrert = v_kvadrert_middel_numerisk()
+    E = 1/2 * m * v_mid_kvadrert
+    return E
+
+def trykk_analytisk(): 
+    global k, T, N, L 
+    n = N/(L**3)  
+    return n*k*T
+
+def trykk_numerisk():
+    global L, F
+    A = L**2
+    print(f"Kraften er {F} og arealet er {A}")
+    pressure = F/A
+    return pressure
+
+
+def plot_hastighet_absolutt(hastigheter):
+    """
+    Plotter analytisk absolutt hastighet mot numerisk hastighet. 
+    """
+    v_abs = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
+    v_abs_analytical = np.arange(min(v_abs)-1000, max(v_abs)+1000, 30)
+
+    plt.plot(v_abs_analytical, P_v_abs(v_abs_analytical), label="Analytisk normalkurve")
+    plt.hist(v_abs, bins=10, density=True, alpha=0.3, edgecolor="black", label='numerisk farter')
+    plt.xlabel("Hastighet [m/s]")
+    plt.ylabel("Sannsynlighet")
+    plt.title("Analytiske mot numeriske absolutte hastigheter")
+    plt.legend()
+    plt.show()
+
+
+def plot_hastighet_komponent(hastigheter):
+    """
+    Plotter analytisk hastighetskomponent mot numerisk hastighet. 
     """
     vx = hastigheter[:,0]
     v_x = np.arange(min(vx)-1000, max(vx)+1000, 30)
@@ -185,7 +236,21 @@ def plot_hastighet(hastigheter):
     plt.show()
 
     
-plot_hastighet(hastigheter)
+plot_hastighet_komponent(hastigheter)
+plot_hastighet_absolutt(hastigheter)
+
+P = trykk_analytisk()
+p = trykk_numerisk()
+print(f"Trykket er {P:.2f} Pa analytisk og på {p} Pa numerisk forholdet blir da {p/P} %")
+
+E = energi_analytical()
+e = energi_numerical()  
+print(f"Energien er {E} J analytisk og på {e} J numerisk, forholdet blir da {e/E} %")
+
+v = v_middel_numerisk()
+V = v_middel_analytisk()
+
+print(f"Farta er {v} m/s numerisk og {V} m/s analytisk, forholdet blir da {v/V} %")
 
 
 
