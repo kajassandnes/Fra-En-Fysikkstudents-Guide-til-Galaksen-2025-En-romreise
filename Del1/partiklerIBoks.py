@@ -86,7 +86,7 @@ plt.xlabel("Hastigheter [m/s]")
 plt.ylabel("Sannsynlighet")
 plt.title("Numerisk mot Analytiske hastigheter")
 
-#bip bop 
+#bip bop bop
 plt.legend()
 plt.show()
 
