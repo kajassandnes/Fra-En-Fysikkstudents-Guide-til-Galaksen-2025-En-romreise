@@ -22,7 +22,7 @@ rd.seed(100)
 
 # First step: simulate random positions to the N particles 
 
-def create_random_positions(n: int) -> list[float]:
+def create_random_positions(N: int) -> list[float]:
     """
     Funksjon som lager en array med n posisjons-vektorer [x, y, z].
     Komponentene blir tilfeldig valgt med en uniform fordeling innenfor
@@ -34,7 +34,7 @@ def create_random_positions(n: int) -> list[float]:
     Return:
     (list): array med uniformt fordelte posisjoner i x-, y- og z-retning
     """
-    return np.random.uniform(x1, x2, (n, 3))
+    return np.random.uniform(x1, x2, (N, 3))
 
 
 def påfyll():
@@ -110,7 +110,7 @@ antall = 7e12
 pz = 0
 # ========================================
 
-def kraft():
+def kraft(posisjoner, hastigheter):
     """
     Regner ut kraften partiklene i én enkelt boks med lengde 10⁻⁶ produserer
     og ganger det med 2.5*10¹². Da får motoren et areal på 2.5 m². 
@@ -122,7 +122,7 @@ def kraft():
     L (float): lengde til boksen
     antall (int): antall bokser vi skal gange krafta med
     """
-    global t, F, T_tot, dt, posisjoner, hastigheter, L, pz
+    global t, F, T_tot, dt, L, pz
     while t < T_tot:
         kollisjon_topp = posisjoner > L
         kollisjon_bunn = posisjoner < 0
@@ -134,7 +134,7 @@ def kraft():
 
         pz += 2*m*norm
 
-        hastigheter[kollisjon_topp | kollisjon_bunn] *= -1
+        hastigheter[kollisjon_topp | kollisjon_bunn] *= -1  # partikler som kolliderer skifter vei
 
         posisjoner += hastigheter*dt
 
@@ -142,14 +142,29 @@ def kraft():
         hastigheter[partikkel_rømming] = create_random_velocities(1)
 
         t += dt
+
     F = pz / T_tot
 
     return F
 
+# Regn ut gjennomsnitt og standardavvik til krafta
+def mean_og_sd_kraft():
+    global antall, posisjoner, hastigheter
 
-F_1 = kraft()*antall
-print(f"Total kraft er {F_1}, og areal {L**2 * antall}")
+    gang = 1000
+    liste = np.zeros(gang)
+    for i in range(gang):
+        liste[i] = kraft(posisjoner, hastigheter)*antall
+        posisjoner = create_random_positions(N) 
+        hastigheter = create_random_velocities(N)
 
+    print(liste)
+
+    gjennomsnitt = np.mean(liste)
+    standardavvik = np.std(liste)
+    print(f"mean = {gjennomsnitt}, SD = {standardavvik}")
+
+    
 
 
 
@@ -167,17 +182,20 @@ def P_v_abs(v):
     """
     return (m/(2*np.pi*k*T))**(3/2) *  np.exp((-1/2)*(m*v**2)/(k*T)) * 4 * np.pi * v**2
 
+
+
 def v_kvadrert_middel_numerisk():
     global hastigheter
-    v = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
-    s = v**2 * P_v_abs(v)
-    v_mid = sum(s)/len(v)
-    return v_mid
+    v_abs_numerisk = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
+    v_kvadrert = v_abs_numerisk**2
+    #s = v_kvadrert * P_v_abs(v_abs_numerisk)
+    v_mid_kvadrert = sum(v_kvadrert)/len(v_abs_numerisk)
+    return v_mid_kvadrert
 
 def v_middel_numerisk():
-    v1 = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
-    v2 = sum(v1)/len(v1)
-    return v2
+    v_abs = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
+    v_middel = sum(v_abs)/len(v_abs)
+    return v_middel
 
 def v_middel_analytisk():
     return 2 * np.pi**(-1/2) * np.sqrt((2*k*T) / m)
@@ -199,20 +217,21 @@ def trykk_analytisk():
 def trykk_numerisk():
     global L, F
     A = L**2
-    print(f"Kraften er {F} og arealet er {A}")
+    #print(f"Kraften er {F} og arealet er {A}")
     pressure = F/A
     return pressure
+
 
 
 def plot_hastighet_absolutt(hastigheter):
     """
     Plotter analytisk absolutt hastighet mot numerisk hastighet. 
     """
-    v_abs = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
-    v_abs_analytical = np.arange(min(v_abs)-1000, max(v_abs)+1000, 30)
+    v_abs_numerisk = np.sqrt(hastigheter[:,0]**2 + hastigheter[:,1]**2 + hastigheter[:, 2]**2)
+    v_abs_analytical = np.arange(min(v_abs_numerisk)-1000, max(v_abs_numerisk)+1000, 30)
 
     plt.plot(v_abs_analytical, P_v_abs(v_abs_analytical), label="Analytisk normalkurve")
-    plt.hist(v_abs, bins=10, density=True, alpha=0.3, edgecolor="black", label='numerisk farter')
+    plt.hist(v_abs_numerisk, bins=10, density=True, alpha=0.3, edgecolor="black", label='numerisk farter')
     plt.xlabel("Hastighet [m/s]")
     plt.ylabel("Sannsynlighet")
     plt.title("Analytiske mot numeriske absolutte hastigheter")
@@ -224,34 +243,61 @@ def plot_hastighet_komponent(hastigheter):
     """
     Plotter analytisk hastighetskomponent mot numerisk hastighet. 
     """
-    vx = hastigheter[:,0]
-    v_x = np.arange(min(vx)-1000, max(vx)+1000, 30)
+    v_x_numerisk = hastigheter[:,0]
+    v_x_analytisk = np.arange(min(v_x_numerisk)-1000, max(v_x_numerisk)+1000, 30)
 
-    plt.plot(v_x, P_v_vec(v_x), label="Analytisk normalkurve")
-    plt.hist(vx, bins=10, density=True, alpha=0.3, edgecolor="black", label='numerisk farter')
+    plt.plot(v_x_analytisk, P_v_vec(v_x_analytisk), label="Analytisk normalkurve")
+    plt.hist(v_x_numerisk, bins=10, density=True, alpha=0.3, edgecolor="black", label='numerisk farter')
     plt.xlabel("Hastighet [m/s]")
     plt.ylabel("Sannsynlighet")
     plt.title("Analytiske mot numeriske hastigheter")
     plt.legend()
     plt.show()
 
-    
-plot_hastighet_komponent(hastigheter)
-plot_hastighet_absolutt(hastigheter)
 
-P = trykk_analytisk()
-p = trykk_numerisk()
-print(f"Trykket er {P:.2f} Pa analytisk og på {p} Pa numerisk forholdet blir da {p/P} %")
 
-E = energi_analytical()
-e = energi_numerical()  
-print(f"Energien er {E} J analytisk og på {e} J numerisk, forholdet blir da {e/E} %")
 
-v = v_middel_numerisk()
-V = v_middel_analytisk()
+# Kraft
+F_1 = kraft(posisjoner, hastigheter)*antall
 
-print(f"Farta er {v} m/s numerisk og {V} m/s analytisk, forholdet blir da {v/V} %")
+# Trykk
+p_analytisk = trykk_analytisk()
+p_numerisk = trykk_numerisk()
 
+# Energi
+E_analytisk = energi_analytical()
+E_numerisk = energi_numerical()  
+
+# Fart
+v_numerisk = v_middel_numerisk()
+v_analytisk = v_middel_analytisk()
+
+
+if __name__ == "__main__":
+    # Plott
+    plot_hastighet_komponent(hastigheter)
+    plot_hastighet_absolutt(hastigheter)
+
+    # Kraft
+    print(f"Motorens skyvkraft er {F_1}, og areal på motoren er {L**2 * antall}")
+    print()
+
+    # Trykk
+    print(f"Trykket er {p_analytisk} Pa analytisk og på {p_numerisk}")
+    print(f"Pa numerisk forholdet blir da {abs(p_numerisk - p_analytisk)/p_analytisk * 100} %")
+    print()
+
+    # energi
+    print(f"Energien er {E_analytisk} J analytisk og på {E_numerisk} J numerisk")
+    print(f"forholdet blir da {abs(E_numerisk - E_analytisk)/E_analytisk * 100} %")
+    print()
+
+    # Fart
+    print(f"Farta er {v_analytisk} m/s analytisk og {v_numerisk} m/s numerisk")
+    print(f"forholdet blir da {abs(v_numerisk-v_analytisk)/v_analytisk * 100} %")
+    print()
+
+    #mean_og_sd_kraft()
 
 
 # Trykke: Regne ut kreftene
