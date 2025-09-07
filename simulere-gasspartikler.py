@@ -110,7 +110,7 @@ antall = 7e12
 pz = 0
 # ========================================
 
-def kraft(posisjoner, hastigheter):
+def kraft():
     """
     Regner ut kraften partiklene i én enkelt boks med lengde 10⁻⁶ produserer
     og ganger det med 2.5*10¹². Da får motoren et areal på 2.5 m². 
@@ -122,7 +122,7 @@ def kraft(posisjoner, hastigheter):
     L (float): lengde til boksen
     antall (int): antall bokser vi skal gange krafta med
     """
-    global t, F, T_tot, dt, L, pz
+    global t, F, T_tot, dt, L, pz, posisjoner, hastigheter
     while t < T_tot:
         kollisjon_topp = posisjoner > L
         kollisjon_bunn = posisjoner < 0
@@ -155,8 +155,11 @@ def mean_og_sd_kraft():
     liste = np.zeros(gang)
     for i in range(gang):
         liste[i] = kraft(posisjoner, hastigheter)*antall
+
+        rd.seed(100 + i)
         posisjoner = create_random_positions(N) 
         hastigheter = create_random_velocities(N)
+        
 
     print(liste)
 
@@ -258,7 +261,7 @@ def plot_hastighet_komponent(hastigheter):
 
 
 # Kraft
-F_1 = kraft(posisjoner, hastigheter)*antall
+F_1 = kraft()*antall
 
 # Trykk
 p_analytisk = trykk_analytisk()
@@ -283,18 +286,18 @@ if __name__ == "__main__":
     print()
 
     # Trykk
-    print(f"Trykket er {p_analytisk} Pa analytisk og på {p_numerisk}")
-    print(f"Pa numerisk forholdet blir da {abs(p_numerisk - p_analytisk)/p_analytisk * 100} %")
+    print(f"Trykket er {p_analytisk} Pa analytisk og på {p_numerisk} Pa numerisk.")
+    print(f"Relativ usikkerhet blir da {abs(p_numerisk - p_analytisk)/p_analytisk * 100} %")
     print()
 
     # energi
     print(f"Energien er {E_analytisk} J analytisk og på {E_numerisk} J numerisk")
-    print(f"forholdet blir da {abs(E_numerisk - E_analytisk)/E_analytisk * 100} %")
+    print(f"Relativ usikkerhet blir da {abs(E_numerisk - E_analytisk)/E_analytisk * 100} %")
     print()
 
     # Fart
     print(f"Farta er {v_analytisk} m/s analytisk og {v_numerisk} m/s numerisk")
-    print(f"forholdet blir da {abs(v_numerisk-v_analytisk)/v_analytisk * 100} %")
+    print(f"Relativ usikkerheten blir da {abs(v_numerisk-v_analytisk)/v_analytisk * 100} %")
     print()
 
     #mean_og_sd_kraft()
