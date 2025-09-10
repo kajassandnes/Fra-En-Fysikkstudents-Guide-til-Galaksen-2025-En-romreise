@@ -1,4 +1,5 @@
 # Vi har ikke brukt kodemal
+# Kommentar i bunnen av koden
 # This code simulate the gassparticles in an engine
 import ast2000tools.constants as const
 import ast2000tools.utils as utils
@@ -330,3 +331,11 @@ if __name__ == "__main__":
     print(f"Middelfart numerisk: {v_numerisk} m/s")
     print(f"Relativ usikkerhet: {abs(v_numerisk-v_analytisk)/v_analytisk * 100} %")
     print()
+
+
+
+# Noen ganger simuleringen kjører oppnår trykket en usikkerhet på helt opp til 
+# 15 prosent. Vi antar at dette er på grunn av usikkerhet rundt implementering
+# av partikkelkollisjoner slik at noen partikler unnslipper boksen uten at 
+# det blir fanget opp. Det er ofte de med høyest hastighet, og vi mister mye
+# trykk.
