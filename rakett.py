@@ -1,1 +1,0 @@
-# Hei! Dette er oscars første gitfil

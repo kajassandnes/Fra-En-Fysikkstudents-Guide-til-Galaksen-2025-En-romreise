@@ -1,3 +1,4 @@
+# Ikke brukt kodemal
 import ast2000tools.utils as utils
 import ast2000tools.constants as const
 seed = utils.get_seed('oafincke')
