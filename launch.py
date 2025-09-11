@@ -227,7 +227,7 @@ if __name__ == "__main__":
     print(f"Startfart fra jordrotasjon: {v_initial:.2f} m/s")
     print()
 
-    print(f"Det tok {t} sekunder ({t/60:.2f} minutter) å nå unnslipningshastighet.")
+    print(f"Det tok {t:2f} sekunder ({t/60:.2f} minutter) å nå unnslipningshastighet.")
     print(f"Nåværende masse: {mass:.2f} kg")
     print(f"Drivstoff brukt: {(mass_initial - mass):.2f} kg")
     print(f"Gjenværende drivstoff: {(mass - 1100):.2f}")
