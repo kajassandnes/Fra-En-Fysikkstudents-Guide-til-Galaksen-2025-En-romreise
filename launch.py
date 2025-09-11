@@ -1,4 +1,4 @@
-# Ikke brukt kodemal, kommentarer til koden i slutten av programmet
+# Ikke brukt kodemal
 # Program som launcher raketten
 import matplotlib.pyplot as plt
 import numpy as np
@@ -283,11 +283,5 @@ if __name__ == "__main__":
         mission.launch_rocket()
 
     mission.verify_launch_result(koordinater_rakett_stjerne_AU)
-
-
-
-# Vi bommer på ca. 200 km ved oppskytningen. Vi antar at det er på grunn av 
-# en feil i koordinatskifte
-
 
 
