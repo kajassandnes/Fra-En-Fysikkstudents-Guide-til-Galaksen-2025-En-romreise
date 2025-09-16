@@ -14,21 +14,32 @@ mission = SpaceMission(seed)
 
 # ============= NUMERISKE PLOT ================
 
-class Planet:
-    def __init__(self, x: float, y: float, vx: float, vy: float, m: float, nr:int):
-        self.x = x
-        self.y = y
-        self.vx = vx
-        self.vy = vy
-        self.m = m
-        self.nr = nr
+class Planet():
+    def __init__(self, semi_major_axes, eccentricity, planet_mass, planet_radius, aphelion_angle, init_orbit_angle, x , y, vx ,vy, nr):
+        self._a = semi_major_axes    # AU
+        self._e = eccentricity   
+        self._mass = planet_mass     # mass comparred to sun
+        self._radius = planet_radius     # km
+        self._m = const.G_sol * (planet_mass + system.star_mass)  # G(m_planet + m_sun)
+        self._ang = aphelion_angle   # angle from x-axes to point farthest from the sun (radians)
+        self._init_ang = init_orbit_angle    # (radians)
+        self.x = x  # AU
+        self.y = y  # AU
+        self.vx = vx    # AU / year
+        self.vy = vy    # AU / year 
+        self.r = np.array([self.x,self.y])
+        self.v = np.array([self.vx, self.vy])
+        self._nr = nr
+        self._h =  np.linalg.norm(np.array([x,y])) * np.linalg.norm(np.array([vx,vy])) * np.cos(self._init_ang) #angular momentum
+        self._p = self._h**2 / self._m
+
 
     
     def akselerasjon(self, r_vec: np.ndarray[float]):
         """Finner akselerasjonen ved Newtons andre lov a = F/m der m er massen
         til sola og F er gravitasjonskraften mellom planeten og stjernen, 
         F = -GM*r_hat/r**2. Krafta er negativ fordi den er tiltrekkende og peker
-        fra planeten mot stjernen, mens enhetsvektoren peker fra sola mot planeten.
+        fra planeten mot stjernen, mensc enhetsvektoren peker fra sola mot planeten.
         
         Parametere: 
         r_vec (np.ndarray[float]): posisjonen til planeten i x- og y-koordinater [AU]
@@ -68,7 +79,7 @@ class Planet:
         t = 0   # years
         T_tot = 1  # years
         time_step_pr_year = 10000
-        dt = T_tot/time_step_pr_year
+        dt = T_tot / time_step_pr_year
         N = time_step_pr_year*T_tot + 2
 
         self.r = np.zeros((N, 2))
@@ -93,7 +104,7 @@ class Planet:
     
     def plotter(self):
         r = self.numerisk_bane()
-        plt.plot(self.r[:,0], self.r[:,1], label = f"Planet nr. {self.nr}")
+        plt.plot(self.r[:,0], self.r[:,1], label = f"Planet nr. {self._nr}")
         plt.xlabel("posisjon langs x [AU]")
         plt.ylabel("posisjon langs y [AU]")
         plt.title("Numeriske baner")
@@ -103,14 +114,22 @@ class Planet:
         
     
 
-frogstar = Planet(system.initial_positions[0][0], system.initial_positions[1][0], \
-                  system.initial_velocities[0][0], system.initial_velocities[1][0], \
-                  system.masses[0], 0)
+def create_planet_objects():
+    planet_objekter = []
+    for i in range(8):
+        planet_objekt = Planet(system.semi_major_axes[i], system.eccentricities[i], \
+                system.masses[i], system.radii[i], system.aphelion_angles[i], \
+                system.initial_orbital_angles[i], \
+                system.initial_positions[0][i], system.initial_positions[1][i], \
+                system.initial_velocities[0][i], system.initial_velocities[1][i], i)
+        
+        planet_objekter.append(planet_objekt)
+    
+    return planet_objekter
 
-frogstar.plotter()
 
+planet_objects = create_planet_objects()
 
+#planet_objects[0].plotter()
 
-            
-
-
+print("HEI")
