@@ -12,8 +12,7 @@ system = SolarSystem(seed)
 from ast2000tools.space_mission import SpaceMission
 mission = SpaceMission(seed)
 
-# ============= NUMERISKE PLOT ================
-
+# ============================== Planet klasse ================================
 class Planet():
     def __init__(self, semi_major_axes, eccentricity, planet_mass, planet_radius, \
                  aphelion_angle, init_orbit_angle, x , y, vx ,vy, nr):
@@ -120,7 +119,7 @@ class Planet():
         return r_vec
     
     
-    def orbit_plotter(self):
+    def numerical_orbit_plotter(self):
         r = self.numerisk_bane()
         plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr}")
         plt.xlabel("posisjon langs x [AU]")
@@ -135,7 +134,7 @@ class Planet():
 
 def plot_numerical_orbits(planet_objects):
     for planet in planet_objects:
-        planet.orbit_plotter() 
+        planet.numerical_orbit_plotter() 
     
     plt.show()
 
