@@ -15,7 +15,7 @@ mission = SpaceMission(seed)
 # ============================== Planet klasse ================================
 class Planet():
     def __init__(self, semi_major_axes, eccentricity, planet_mass, planet_radius, \
-                 aphelion_angle, init_orbit_angle, x , y, vx ,vy, nr):
+                 aphelion_angle, init_orbit_angle, x, y, vx ,vy, nr):
         self._a = semi_major_axes    # AU
         self._e = eccentricity   
         self._mass = planet_mass     # mass comparred to sun
@@ -23,7 +23,7 @@ class Planet():
         self._m = const.G_sol * (planet_mass + system.star_mass)  # G(m_planet + m_sun)
         self._ang = aphelion_angle   # angle from x-axes to point farthest from the sun (radians)
         self._init_ang = init_orbit_angle    # (radians)
-        self.P = np.sqrt(4*np.pi**2*self._a**3 / self._m)
+        self._P = np.sqrt(4*np.pi**2*self._a**3 / self._m)
 
         self.x = x  # AU
         self.y = y  # AU
@@ -31,10 +31,11 @@ class Planet():
         self.vy = vy    # AU / year 
         self.r = np.array([self.x, self.y])
         self.v = np.array([self.vx, self.vy])
-        self.a = np.zeros((2))
+        self.a = np.zeros(2)
+        self.current_angle = 0
 
         self._nr = nr
-        self._h =  np.linalg.norm(np.array([x,y])) * np.linalg.norm(np.array([vx,vy])) * np.cos(self._init_ang) #angular momentum
+        self._h =  np.linalg.norm(np.array([x, y])) * np.linalg.norm(np.array([vx,vy])) * np.cos(self._init_ang) #angular momentum
         self._p = self._h**2 / self._m
 
 
@@ -100,6 +101,7 @@ class Planet():
 
         i = 0
 
+        # Bruker Leap_Frog
         while t < T_tot:  
             r_vec[i+1] = r_vec[i] + v_vec[i]*dt + 0.5*a_vec[i]*dt**2         
             a_vec[i+1] = self.akselerasjon(r_vec[i+1])
@@ -108,13 +110,14 @@ class Planet():
             t += dt
             i += 1
 
-        self.x = r_vec[-1][0]
+        # Oppdaterer objektets attributter
+        '''self.x = r_vec[-1][0]
         self.y = r_vec[-1][1]
         self.vx = v_vec[-1][0]
         self.vy = v_vec[-1][1]
         self.r = r_vec[-1]
         self.v = v_vec[-1]
-        self.a = a_vec[-1]
+        self.a = a_vec[-1]'''
 
         return r_vec
     
@@ -127,6 +130,24 @@ class Planet():
         plt.title("Numeriske baner")
         plt.grid()
         plt.legend()
+
+    def analytical_orbits(self):
+        theta_tot = 2* np.pi
+        d_theta = 0.1
+        N = theta_tot / d_theta
+        r_vec = np.array((N,2))
+        i = 0
+        while self.current_angle <= theta_tot:
+            f = self.current_angle - self._ang
+            self.r = self._P / (1+(self._e * np.cos(f))) #likning fra forelesningsnotater
+            r_vec[i][0] = self.r*np.cos(self.current_angle)
+            r_vec[i][1] = self.r*np.sin(self.current_angle)
+            
+            i += 1
+            self.current_angle += d_theta
+            
+            
+
         
 
 
@@ -155,4 +176,4 @@ def create_all_planet_objects():
 
 
 all_planet_objects = create_all_planet_objects()
-plot_numerical_orbits(all_planet_objects)
+#plot_numerical_orbits(all_planet_objects)
