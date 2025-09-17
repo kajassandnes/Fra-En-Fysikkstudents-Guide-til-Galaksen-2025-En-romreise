@@ -166,26 +166,32 @@ class Planet():
         r_min_vec = r_vec[idx_min : idx_min + (time_steps + 1)]
 
 
-
         areal_max = 0
         areal_min = 0
+
+        R1 = 0
+        R2 = 0
 
         # Vektoren fra sola til planeten ved t = 0 er r, fra sola til planeten
         # ved t = 1 er r'. Vektoren fra r til r' er dr = r' - r
         for i in range(len(r_max_vec) - 1): 
             u1 = r_max_vec[i]
             v1 = r_max_vec[i+1]
+            R1 += np.linalg.norm(v1 - u1)
             areal_max += self.lite_areal(u1, v1)
 
             u2 = r_min_vec[i]
             v2 = r_min_vec[i+1]
+            R2 += np.linalg.norm(v2 - u2)
             areal_min += self.lite_areal(u2, v2)
 
+        mean_velocity_1 = R1 / t_tot
+        mean_velocity_2 = R2 / t_tot
 
         difference = abs(areal_max - areal_min)
         relative_uncertainty = difference / areal_max
 
-        return areal_max, areal_min, difference, relative_uncertainty
+        return areal_max, areal_min, difference, relative_uncertainty, R1, R2, mean_velocity_1, mean_velocity_2
     
 
 
@@ -235,7 +241,7 @@ if __name__ == "__main__":
     #plot_analytical_orbits(all_planet_objects)
     #plot_numerical_and_analytical_orbits(all_planet_objects)
 
-    aphelion_area, perihelion_area, abs_uncertainty, rel_uncertainty = Kepler(all_planet_objects[0])
+    aphelion_area, perihelion_area, abs_uncertainty, rel_uncertainty, distance_aph, distance_perih, mean_velocity_aph, mean_velocity_perih = Kepler(all_planet_objects[0])
     print()
     print("ANALYSE AV KEPLERS 2. LOV")
     print(f"Areal sveipet ut på t=P/10 år nærmest ved perihelion: {perihelion_area} AU")
@@ -243,6 +249,12 @@ if __name__ == "__main__":
     print(f"Differanse, absolutt usikkerhet: {abs_uncertainty} AU")
     print(f"Relativ usikkerhet: {rel_uncertainty}")
     print(f"Prosentvis andel perihelion av aphelion: {perihelion_area/aphelion_area * 100} %")
+    print()
+    print(f"Distance travelled aphelion: {distance_aph} AU")
+    print(f"Distance travelled perihelion: {distance_perih} AU")
+    print(f"Mean velocity at aphelion: {mean_velocity_aph} AU/year")
+    print(f"Mean velocity at perihelion: {mean_velocity_perih} AU/year")
+
 
 
 
