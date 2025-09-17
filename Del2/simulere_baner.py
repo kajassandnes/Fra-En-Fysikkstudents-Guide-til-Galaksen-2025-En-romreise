@@ -35,7 +35,7 @@ class Planet():
         self.current_angle = 0
 
         self._nr = nr
-        self._h =  np.linalg.norm(np.array([x, y])) * np.linalg.norm(np.array([vx,vy])) * np.cos(self._init_ang) #angular momentum
+        self._h = np.linalg.norm([0, 0, x*vy - y*vx])
         self._p = self._h**2 / self._m
 
 
@@ -63,7 +63,7 @@ class Planet():
         return aks
 
     
-    def numerisk_bane(self):
+    def numerisk_bane(self, runder=20):
         """Plotter de numeriske banene ved hjelp av leap-frog metoden.
         
         Parametere: 
@@ -83,7 +83,6 @@ class Planet():
         self.r: Array med x- og y-koordinater som skal plottes over analytiske 
         baner.
         """
-        runder = 20
         P = np.sqrt(4 * np.pi**2 * system.semi_major_axes[0]**3 / (const.G_sol * (system.star_mass + system.masses[0])))
         T_tot = P * runder  
         time_steps_pr_year = 10000 
@@ -91,9 +90,9 @@ class Planet():
         dt = T_tot / time_steps
         t = dt
 
-        r_vec = np.zeros((time_steps +1, 2))
-        v_vec = np.zeros((time_steps +1, 2))
-        a_vec = np.zeros((time_steps +1, 2))
+        r_vec = np.zeros((time_steps + 1, 2))
+        v_vec = np.zeros((time_steps + 1, 2))
+        a_vec = np.zeros((time_steps + 1, 2))
 
         r_vec[0] = self.r
         v_vec[0] = self.v
@@ -110,52 +109,115 @@ class Planet():
             t += dt
             i += 1
 
-        # Oppdaterer objektets attributter
-        '''self.x = r_vec[-1][0]
-        self.y = r_vec[-1][1]
-        self.vx = v_vec[-1][0]
-        self.vy = v_vec[-1][1]
-        self.r = r_vec[-1]
-        self.v = v_vec[-1]
-        self.a = a_vec[-1]'''
+
+        return r_vec, dt
+    
+
+    def analytical_orbits(self):
+        d_theta = 0.1
+        theta_values = np.arange(self._init_ang, self._init_ang + 2 * np.pi + d_theta, d_theta)
+        r_vec = np.zeros((len(theta_values),2))
+
+        for i, theta in enumerate(theta_values):
+            f = theta - (self._ang - np.pi)
+            r = self._p / (1 + (self._e * np.cos(f))) #likning fra forelesningsnotater
+            r_vec[i, 0] = r*np.cos(theta)
+            r_vec[i, 1] = r*np.sin(theta)
 
         return r_vec
     
     
+    def analytical_orbit_plotter(self):
+        r = self.analytical_orbits()
+        plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr} analytisk")
+        plt.xlabel("posisjon langs x [AU]")
+        plt.ylabel("posisjon langs y [AU]")
+        plt.title("Analytiske baner")
+        plt.grid()
+        plt.legend()
+
+
     def numerical_orbit_plotter(self):
-        r = self.numerisk_bane()
-        plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr}")
+        r, dt = self.numerisk_bane()
+        plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr} numerisk")
         plt.xlabel("posisjon langs x [AU]")
         plt.ylabel("posisjon langs y [AU]")
         plt.title("Numeriske baner")
         plt.grid()
         plt.legend()
 
-    def analytical_orbits(self):
-        theta_tot = 2* np.pi
-        d_theta = 0.1
-        N = theta_tot / d_theta
-        r_vec = np.array((N,2))
-        i = 0
-        while self.current_angle <= theta_tot:
-            f = self.current_angle - self._ang
-            self.r = self._P / (1+(self._e * np.cos(f))) #likning fra forelesningsnotater
-            r_vec[i][0] = self.r*np.cos(self.current_angle)
-            r_vec[i][1] = self.r*np.sin(self.current_angle)
-            
-            i += 1
-            self.current_angle += d_theta
-            
-            
+
+    def lite_areal(self, u, v):
+        """Arealet til en trekant er gitt ved (1/2)*|r1 x r2|"""
+        areal = 0.5 * np.abs(np.cross(u, v))
+        return areal
+    
+    def stort_areal(self):
+        t_tot = self._P / 10
+        r_vec, dt = self.numerisk_bane(1)   
+
+        idx_max = np.argmax(np.linalg.norm(r_vec, axis=1))
+        idx_min = np.argmin(np.linalg.norm(r_vec, axis=1))
+
+        time_steps = int(t_tot // dt)
+
+        try:
+            r_max_vec = r_vec[idx_max : idx_max + (time_steps + 1)]
+        except IndexError:
+            r_max_vec = r_vec[(idx_max - time_steps) : (idx_max + 1)]
+
+        try:
+            r_min_vec = r_vec[idx_min : idx_min + (time_steps + 1)]
+        except IndexError:
+            r_min_vec = r_vec[(idx_min - time_steps) : (idx_min + 1)]
+
+
+        areal_max = 0
+        areal_min = 0
+
+        # Vektoren fra sola til planeten ved t = 0 er r, fra sola til planeten
+        # ved t = 1 er r'. Vektoren fra r til r' er dr = r' - r
+        for i in range(len(r_max_vec) - 1): 
+            u1 = r_max_vec[i]
+            v1 = r_max_vec[i+1]
+            areal_max += self.lite_areal(u1, v1)
+
+            u2 = r_min_vec[i]
+            v2 = r_min_vec[i+1]
+            areal_min += self.lite_areal(u2, v2)
 
         
+        area_pr_time_max = areal_max / t_tot
+        area_pr_time_min = areal_min / t_tot
+
+        difference = abs(area_pr_time_max - area_pr_time_min)
+        relative_uncertainty = difference / area_pr_time_max
+
+        return area_pr_time_max, area_pr_time_min, difference, relative_uncertainty
+    
 
 
 
+
+def Kepler(planet):
+    return planet.stort_areal()
+
+def plot_analytical_orbits(planet_objects):
+    for planet in planet_objects:
+        planet.analytical_orbit_plotter() 
+    
+    plt.show()
 
 def plot_numerical_orbits(planet_objects):
     for planet in planet_objects:
         planet.numerical_orbit_plotter() 
+    
+    plt.show()
+
+def plot_numerical_and_analytical_orbits(planet_objects):
+    for planet in planet_objects:
+        planet.numerical_orbit_plotter() 
+        planet.analytical_orbit_plotter()
     
     plt.show()
 
@@ -175,5 +237,19 @@ def create_all_planet_objects():
 
 
 
-all_planet_objects = create_all_planet_objects()
-#plot_numerical_orbits(all_planet_objects)
+if __name__ == "__main__":
+    all_planet_objects = create_all_planet_objects()
+    #plot_numerical_orbits(all_planet_objects)
+    #plot_analytical_orbits(all_planet_objects)
+    #plot_numerical_and_analytical_orbits(all_planet_objects)
+
+    aphelion_area, perihelion_area, abs_uncertainty, rel_uncertainty = Kepler(all_planet_objects[0])
+    print()
+    print("ANALYSE AV KEPLERS 2. LOV")
+    print(f"Areal/tid nærmest ved perihelion: {perihelion_area} AU/year")
+    print(f"Areal/tid lengst unna ved aphelion: {aphelion_area} AU/year")
+    print(f"Differanse, absolutt usikkerhet: {abs_uncertainty} AU/year")
+    print(f"Relativ usikkerhet: {rel_uncertainty}")
+    print(f"Prosentvis andel perihelion av aphelion: {perihelion_area/aphelion_area * 100} %")
+    
+
