@@ -161,15 +161,10 @@ class Planet():
 
         time_steps = int(t_tot // dt)
 
-        try:
-            r_max_vec = r_vec[idx_max : idx_max + (time_steps + 1)]
-        except IndexError:
-            r_max_vec = r_vec[(idx_max - time_steps) : (idx_max + 1)]
+        
+        r_max_vec = r_vec[idx_max : idx_max + (time_steps + 1)]
+        r_min_vec = r_vec[idx_min : idx_min + (time_steps + 1)]
 
-        try:
-            r_min_vec = r_vec[idx_min : idx_min + (time_steps + 1)]
-        except IndexError:
-            r_min_vec = r_vec[(idx_min - time_steps) : (idx_min + 1)]
 
 
         areal_max = 0
@@ -186,14 +181,11 @@ class Planet():
             v2 = r_min_vec[i+1]
             areal_min += self.lite_areal(u2, v2)
 
-        
-        area_pr_time_max = areal_max / t_tot
-        area_pr_time_min = areal_min / t_tot
 
-        difference = abs(area_pr_time_max - area_pr_time_min)
-        relative_uncertainty = difference / area_pr_time_max
+        difference = abs(areal_max - areal_min)
+        relative_uncertainty = difference / areal_max
 
-        return area_pr_time_max, area_pr_time_min, difference, relative_uncertainty
+        return areal_max, areal_min, difference, relative_uncertainty
     
 
 
@@ -246,10 +238,15 @@ if __name__ == "__main__":
     aphelion_area, perihelion_area, abs_uncertainty, rel_uncertainty = Kepler(all_planet_objects[0])
     print()
     print("ANALYSE AV KEPLERS 2. LOV")
-    print(f"Areal/tid nærmest ved perihelion: {perihelion_area} AU/year")
-    print(f"Areal/tid lengst unna ved aphelion: {aphelion_area} AU/year")
-    print(f"Differanse, absolutt usikkerhet: {abs_uncertainty} AU/year")
+    print(f"Areal sveipet ut på t=P/10 år nærmest ved perihelion: {perihelion_area} AU")
+    print(f"Areal sveipet ut på t =P/10 lengst unna ved aphelion: {aphelion_area} AU")
+    print(f"Differanse, absolutt usikkerhet: {abs_uncertainty} AU")
     print(f"Relativ usikkerhet: {rel_uncertainty}")
     print(f"Prosentvis andel perihelion av aphelion: {perihelion_area/aphelion_area * 100} %")
+
+
+
+
+# Arealet som er sveipet ut er rimelige størrelser i forhold til jorda
     
 
