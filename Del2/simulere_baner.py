@@ -120,7 +120,7 @@ class Planet():
         return r_vec
     
     
-    def plotter(self):
+    def orbit_plotter(self):
         r = self.numerisk_bane()
         plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr}")
         plt.xlabel("posisjon langs x [AU]")
@@ -129,9 +129,18 @@ class Planet():
         plt.grid()
         plt.legend()
         
-    
 
-def create_planet_objects():
+
+
+
+def plot_numerical_orbits(planet_objects):
+    for planet in planet_objects:
+        planet.orbit_plotter() 
+    
+    plt.show()
+
+
+def create_all_planet_objects():
     planet_objekter = []
     for i in range(8):
         planet_objekt = Planet(system.semi_major_axes[i], system.eccentricities[i], \
@@ -145,11 +154,6 @@ def create_planet_objects():
     return planet_objekter
 
 
-planet_objects = create_planet_objects()
 
-#planet_objects[0].plotter()
-
-for planet in planet_objects:
-    planet.plotter()
-
-plt.show()
+all_planet_objects = create_all_planet_objects()
+plot_numerical_orbits(all_planet_objects)
