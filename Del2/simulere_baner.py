@@ -12,6 +12,15 @@ system = SolarSystem(seed)
 from ast2000tools.space_mission import SpaceMission
 mission = SpaceMission(seed)
 
+
+# ================ Øker størrelse på tekst på plots ====================
+plt.rcParams['axes.labelsize'] = 26
+plt.rcParams['axes.titlesize'] = 28
+plt.rcParams['xtick.labelsize'] = 20
+plt.rcParams['ytick.labelsize'] = 20
+plt.rcParams['legend.fontsize'] = 20
+
+
 # ============================== Planet klasse ================================
 class Planet():
     def __init__(self, semi_major_axes, eccentricity, planet_mass, planet_radius, \
@@ -63,7 +72,7 @@ class Planet():
         return aks
 
     
-    def numerisk_bane(self, runder=20):
+    def numerisk_bane(self, runder=20, P=np.sqrt(4 * np.pi**2 * system.semi_major_axes[0]**3 / (const.G_sol * (system.star_mass + system.masses[0])))):
         """Plotter de numeriske banene ved hjelp av leap-frog metoden.
         
         Parametere: 
@@ -83,7 +92,6 @@ class Planet():
         self.r: Array med x- og y-koordinater som skal plottes over analytiske 
         baner.
         """
-        P = np.sqrt(4 * np.pi**2 * system.semi_major_axes[0]**3 / (const.G_sol * (system.star_mass + system.masses[0])))
         T_tot = P * runder  
         time_steps_pr_year = 10000 
         time_steps = int(T_tot * time_steps_pr_year)
@@ -127,24 +135,39 @@ class Planet():
         return r_vec
     
     
-    def analytical_orbit_plotter(self):
+    def analytical_orbit_plotter(self, axs):
         r = self.analytical_orbits()
-        plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr} analytisk")
-        plt.xlabel("posisjon langs x [AU]")
-        plt.ylabel("posisjon langs y [AU]")
-        plt.title("Analytiske baner")
-        plt.grid()
-        plt.legend()
+        axs.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr}")
+        axs.set_xlabel("Position x-axis [AU]")
+        axs.set_ylabel("posisjon y-axis [AU]")
+        axs.set_title("Analytical orbits")
+        axs.axis("equal")
+        axs.grid()
+        axs.legend(loc="upper right")
 
 
-    def numerical_orbit_plotter(self):
+    def numerical_orbit_plotter(self, axs):
         r, dt = self.numerisk_bane()
-        plt.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr} numerisk")
-        plt.xlabel("posisjon langs x [AU]")
-        plt.ylabel("posisjon langs y [AU]")
-        plt.title("Numeriske baner")
-        plt.grid()
-        plt.legend()
+        axs.plot(r[:,0], r[:,1], label = f"Planet nr. {self._nr}")
+        axs.set_xlabel("Position x-axis [AU]")
+        axs.set_ylabel("Position y-axis [AU]")
+        axs.set_title("Numerical orbits")
+        axs.axis("equal")
+        axs.grid()
+        axs.legend(loc="upper right")
+
+    def numerical_and_analytical_plotter(self, axs):
+        r_num, dt = self.numerisk_bane()
+        r_anal = self.analytical_orbits()
+        axs.plot(r_num[:,0], r_num[:,1])
+        axs.plot(r_anal[:,0], r_anal[:,1])
+        axs.set_xlabel("Position x-axis [AU]")
+        axs.set_ylabel("Position y-axis [AU]")
+        axs.set_title("Numerical and analytical orbits")
+        axs.axis("equal")
+        axs.grid()
+        axs.legend(loc="upper right")
+        
 
 
     def lite_areal(self, u, v):
@@ -193,6 +216,30 @@ class Planet():
 
         return areal_max, areal_min, difference, relative_uncertainty, R1, R2, mean_velocity_1, mean_velocity_2
     
+    def numerisk_periode(self):
+        theta = self._init_ang
+        t = 0
+        dt = 0.0001
+
+        r = self.r
+        v = self.v
+        a = self.akselerasjon(r)
+
+        # Bruker Leap_Frog
+        while theta < self._init_ang + 2*np.pi:
+            r_ny = r + v*dt + 0.5*a*dt**2
+            a_ny = self.akselerasjon(r)
+            v = v + 0.5*(a + a_ny)*dt
+
+            theta += np.linalg.norm(r_ny - r) / np.linalg.norm(r)
+            a = a_ny
+            r = r_ny
+            
+            t += dt
+        
+        P = t
+
+        return P
 
 
 
@@ -201,23 +248,36 @@ def Kepler(planet):
     return planet.stort_areal()
 
 def plot_analytical_orbits(planet_objects):
+    fig, axs = plt.subplots(1, 1)
     for planet in planet_objects:
-        planet.analytical_orbit_plotter() 
+        planet.analytical_orbit_plotter(axs) 
     
     plt.show()
 
 def plot_numerical_orbits(planet_objects):
+    fig, axs = plt.subplots(1, 1)
     for planet in planet_objects:
-        planet.numerical_orbit_plotter() 
+        planet.numerical_orbit_plotter(axs) 
     
     plt.show()
 
 def plot_numerical_and_analytical_orbits(planet_objects):
+    fig, axs = plt.subplots(1, 1)
     for planet in planet_objects:
-        planet.numerical_orbit_plotter() 
-        planet.analytical_orbit_plotter()
+        planet.numerical_and_analytical_plotter(axs)
     
     plt.show()
+
+
+def periodetider(planet_objects):
+    periodetidene = []
+    for object in planet_objects:
+        P = object.numerisk_periode()
+
+        periodetidene.append(P)
+    
+    return periodetidene
+
 
 
 def create_all_planet_objects():
@@ -237,9 +297,9 @@ def create_all_planet_objects():
 
 if __name__ == "__main__":
     all_planet_objects = create_all_planet_objects()
-    #plot_numerical_orbits(all_planet_objects)
-    #plot_analytical_orbits(all_planet_objects)
-    #plot_numerical_and_analytical_orbits(all_planet_objects)
+    plot_numerical_orbits(all_planet_objects)
+    plot_analytical_orbits(all_planet_objects)
+    plot_numerical_and_analytical_orbits(all_planet_objects)
 
     aphelion_area, perihelion_area, abs_uncertainty, rel_uncertainty, distance_aph, distance_perih, mean_velocity_aph, mean_velocity_perih = Kepler(all_planet_objects[0])
     print()
@@ -254,6 +314,10 @@ if __name__ == "__main__":
     print(f"Distance travelled perihelion: {distance_perih} AU")
     print(f"Mean velocity at aphelion: {mean_velocity_aph} AU/year")
     print(f"Mean velocity at perihelion: {mean_velocity_perih} AU/year")
+
+    periodetidene = periodetider(all_planet_objects)
+    for i in range(len(periodetidene)):
+        print(f"Periodetiden til planet {i}: {periodetidene[i]} years")
 
 
 
