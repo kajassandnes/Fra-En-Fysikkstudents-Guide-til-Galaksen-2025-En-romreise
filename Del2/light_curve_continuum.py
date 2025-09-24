@@ -8,6 +8,7 @@ from ast2000tools.solar_system import SolarSystem
 system = SolarSystem(seed)
 from ast2000tools.space_mission import SpaceMission
 mission = SpaceMission(seed)
+import random
 
 idx_planet = 4
 
@@ -107,13 +108,13 @@ def light_curve():
 
     travelled = 0
     flux_max = 1
-    flux = np.zeros(458)
-    time = np.zeros(458)
+    flux = np.zeros(485)
+    time = np.zeros(485)
     flux[0] = flux_max
     i = 0
     diff = 0
     area_planet = 0
-    buffer = 50000
+    buffer = 100000
 
 
     while travelled < buffer + 2*radius_star + 2*radius_planet + buffer:
@@ -160,6 +161,11 @@ def light_curve():
 
             travelled += np.linalg.norm(v_rel[i]) * dt
             i += 1
+
+        mean = 0
+        sigma = 1e-4
+        gauss_noise = np.random.normal(mean, sigma, (len(flux)))
+        flux = flux + gauss_noise
 
     return flux, time
 
