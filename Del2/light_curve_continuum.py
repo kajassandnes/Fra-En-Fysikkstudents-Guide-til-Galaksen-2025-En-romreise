@@ -95,49 +95,56 @@ def LeapFrog() -> np.ndarray[float]:
 
 def light_curve():
     """Find the time-values and belonging flux-values for the relative flux."""
+    # Definerer forskjellige variabler
     radius_planet = (system.radii[idx_planet])   # km
     radius_star = (system.star_radius)    # km
     area_star = np.pi * radius_star**2 # km^2
 
     v_planet, v_star, dt = LeapFrog()
 
+    # Lager noen arrays og konverterer til ønskede enheter
     v_planet = utils.AU_pr_yr_to_m_pr_s(v_planet)*3.6  # km/t
     v_star = utils.AU_pr_yr_to_m_pr_s(v_star)*3.6   # km/t
     dt = utils.yr_to_s(dt) / 3600 # hours
     v_rel = v_planet - v_star   # km/t   
 
+    # Definerer noen flere variabler
     travelled = 0
     flux_max = 1
-    flux = np.zeros(485)
+    flux = np.zeros(485)    # tallet 485 fant vi ved å kjøre koden noen ganger
     time = np.zeros(485)
-    flux[0] = flux_max
     i = 0
     diff = 0
     area_planet = 0
     buffer = 100000
+    
+    flux[0] = flux_max
+
 
 
     while travelled < buffer + 2*radius_star + 2*radius_planet + buffer:
         if travelled < buffer:
+            # Fluksen er alltid bare 1
             flux[i+1] = flux_max
             time[i+1] = time[i] + dt
 
             travelled += np.linalg.norm(v_rel[i]) * dt
             i += 1
         elif travelled < buffer + 2 * radius_planet:
+            # Beregner arealet som planeten har kommet foran sola med
             diff += np.linalg.norm(v_rel[i])*dt
             r_marked = radius_planet - diff
             h = radius_planet * np.sin(np.arccos(r_marked / radius_planet))
-            area_planet += 2 * h * np.linalg.norm(v_rel[i])*dt
+            area_planet += 2 * h * diff
 
+            # Oppdaterer lister
             flux[i+1] = flux_max - area_planet/area_star
             time[i+1] = time[i] + dt
             np.linalg.norm(v_rel[i]) * dt
             travelled += np.linalg.norm(v_rel[i]) * dt
             i += 1
         elif travelled < buffer + 2 * radius_star:
-            #flux_min = flux[i-1]
-            flux[i+1] = flux[i]#flux_min
+            flux[i+1] = flux[i] #flux_min
             time[i+1] = time[i] + dt
 
             travelled += np.linalg.norm(v_rel[i]) * dt
@@ -145,23 +152,27 @@ def light_curve():
             diff = 0
             area_planet = 0
         elif travelled < buffer + 2*radius_star + 2*radius_planet:
+            # Regner ut arealet planeten har gått ut av sola med
             diff += np.linalg.norm(v_rel[i])*dt
             r_marked = radius_planet - diff
             h = radius_planet * np.sin(np.arccos(r_marked / radius_planet))
             area_planet += 2 * h * np.linalg.norm(v_rel[i])*dt
 
+            # Oppdaterer lister
             flux[i+1] = flux_max - (np.pi*radius_planet**2 - area_planet)/area_star
             time[i+1] = time[i] + dt
             
             travelled += np.linalg.norm(v_rel[i]) * dt
             i += 1
         elif travelled < buffer + 2*radius_star + 2*radius_planet + buffer:
+            # Nå er fluksen alltid bare 1
             flux[i+1] = flux_max
             time[i+1] = time[i] + dt
 
             travelled += np.linalg.norm(v_rel[i]) * dt
             i += 1
 
+        # Legger på gaussisk støy på flux-verdier
         mean = 0
         sigma = 1e-4
         gauss_noise = np.random.normal(mean, sigma, (len(flux)))
@@ -172,9 +183,11 @@ def light_curve():
 
 
 def plotter():
+    """Plotter lyskurve med gaussisk støy"""
     fig, axs = plt.subplots(1, 1)
     flux, time = light_curve()
     axs.plot(time, flux, label = f"Light curve")
+    plt.xticks(np.arange(0, time[-1], 2.5))
     axs.set_xlabel("Time [hours]")
     axs.set_ylabel("Relative flux")
     axs.set_title(f"Light curve of planet {idx_planet}")
@@ -185,3 +198,8 @@ def plotter():
 if __name__ == "__main__":
     plotter()
 
+
+# Her kunne vi åpenbart sluppet hishasset med å finne arealet som funksjon av
+# tida ved å tilnærme fluksen fra punktet der planeten begynner å overlappe sola
+# til den er helt innenfor med en rett linje. Da hadde vi sluppet alle if-tester.
+# Til gjengjeld er det lettere å legge på gaussisk støy.

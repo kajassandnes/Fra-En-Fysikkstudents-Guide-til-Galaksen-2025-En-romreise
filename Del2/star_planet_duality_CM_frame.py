@@ -99,15 +99,46 @@ def LeapFrog() -> np.ndarray[float]:
         i += 1
 
     R_CM = 1/(mass_star + mass_planet) * (mass_star*r_star + mass_planet*r_planet)
-    return r_planet, r_star, R_CM
+    r_planet -= R_CM
+    r_star -= R_CM
+    return r_planet, r_star, dt
 
+def total_energi():
+    """Returnerer total numerisk energi for systemet på starten og på slutten"""
+    # -------------- Konstanter --------------
+    mass_star = system.star_mass   # solar mass
+    mass_planet = system.masses[idx_planet] # solar mass
+    G = const.G_sol     # Gravitational constant in AU
+    mu = mass_star * mass_planet / (mass_star + mass_planet)
+    # ---------------------------------------
 
+    r_planet, r_star, dt = LeapFrog()
+    r_rel = r_planet - r_star
+
+    v_start_planet = (r_planet[3] - r_planet[2]) / dt
+    v_start_star = (r_star[3] - r_star[2]) / dt
+    E_kinetisk_start = 0.5 * (mass_star * np.linalg.norm(v_start_star)**2) + 0.5 * (mass_planet * np.linalg.norm(v_start_planet)**2)
+    potential_start = - G * (mass_star + mass_planet) * mu / np.linalg.norm(r_rel[2])
+    E_tot_start = E_kinetisk_start + potential_start
+
+    
+    v_end_planet = (r_planet[-1] - r_planet[-2]) / dt
+    v_end_star = (r_star[-1] - r_star[-2]) / dt
+    E_kinetisk_end = 0.5 * (mass_star * np.linalg.norm(v_end_star)**2) + 0.5 * (mass_planet * np.linalg.norm(v_end_planet)**2)
+    potential_end = - G * (mass_star + mass_planet) * mu / np.linalg.norm(r_rel[-2])
+    E_tot_end = E_kinetisk_end + potential_end
+    
+    absolute_difference = np.abs(E_tot_end - E_tot_start)
+    relative_uncertainty = np.abs(absolute_difference / E_tot_end)
+
+    return E_tot_start, E_tot_end, absolute_difference, relative_uncertainty
+
+    
 def plotter():
     fig, axs = plt.subplots(1, 1)
-    r_planet, r_star, R_CM = LeapFrog()
+    r_planet, r_star, dt = LeapFrog()
     axs.plot(r_planet[:,0], r_planet[:,1], label = f"Planet nr. {idx_planet}")
     axs.plot(r_star[:,0], r_star[:,1], label = f"Star")
-    axs.plot(R_CM[:,0], R_CM[:,1], label = f"Center of mass")
     axs.set_xlabel("Position x-axis [AU]")
     axs.set_ylabel("Position y-axis [AU]")
     axs.set_title("Two body problem")
@@ -116,7 +147,22 @@ def plotter():
     axs.legend(loc="upper right")
     plt.show()
 
+def information_about_energy() -> str:
+    """Printer informasjon om absolutt og relativ usikkerhet for å beskrive
+    hvor bra energien i systemet er bevart."""
+    E_start, E_end, abs_diff, rel_uncer = total_energi()
+    print()
+    print(f"Total energy at the beginning of simulation: {E_start}")
+    print(f"Total energy at the end of simulation: {E_end}")
+    print()
+    print(f"Absolute uncertainty: {abs_diff}")
+    print(f"Relative uncertainty: {rel_uncer*100} %")
+    print()
+
+
 if __name__ == "__main__":
     plotter()
+    information_about_energy()
+
 
 
