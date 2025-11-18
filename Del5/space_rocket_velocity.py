@@ -10,7 +10,6 @@ system = SolarSystem(seed)
 from ast2000tools.space_mission import SpaceMission
 mission = SpaceMission(seed)
 
-c = const.c     # m/s
 
 def radial_velocity_star_relative_to_reference_star(index: int) -> float:
     """Function that converts measured wavelengths to radial velocity. 
@@ -28,8 +27,7 @@ def radial_velocity_star_relative_to_reference_star(index: int) -> float:
     lambda0 = mission.reference_wavelength  # nanometers
     dlambda = mission.star_doppler_shifts_at_sun[index] # Doppler shifts in nano meters
 
-
-    global c
+    c = const.c     # m/s
     v_r = c*dlambda / lambda0   # m/s
 
     return v_r
@@ -46,7 +44,7 @@ def radial_velocity_spacecraft_relative_to_reference_star(dlambda:float) -> floa
     """
     lambda0 = mission.reference_wavelength  # nanometers
 
-    global c    # m/s
+    c = const.c     # m/s
     v_r = c*dlambda / lambda0   # m/s
 
     return v_r
@@ -69,7 +67,7 @@ def vinkel_mellom_referansestjerne_og_x_akse(index: int) -> float:
 
 def radiell_til_kartesisk(radiell:np.ndarray) -> np.ndarray:
     """Funksjon som transformerer farter fra rommet der de radielle enhetsvektorene 
-    danner en basis til rommet der de kartesiske enhetsvektorene danner en basis.
+    danner en basis, til rommet der de kartesiske enhetsvektorene danner en basis.
     
     Dette gjøres via en matriseligning:
         vx = v1*cos(phi1) + v2*cos(phi2)
@@ -81,7 +79,7 @@ def radiell_til_kartesisk(radiell:np.ndarray) -> np.ndarray:
 
     Returnerer:
     v (ndarray): array med romskipets eller stjernas kartesiske farter relativt 
-               til referansestjernene (m/s)
+                 til referansestjernene (m/s)
     """
     phi_1 = vinkel_mellom_referansestjerne_og_x_akse(0)   # radians
     phi_2 = vinkel_mellom_referansestjerne_og_x_akse(1)   # radians
@@ -124,9 +122,9 @@ def kartesisk_fart_rakett(dlambda1:float, dlambda2:float) -> np.ndarray:
     # transformerer koordinatene til stjerna fra radielle til kartesiske
     v_xy_star = radiell_til_kartesisk(v_r_star) # m/s
 
-    v_xy_spaceship_relative_to_star = v_xy_spaceship - v_xy_star
+    v_xy_spaceship_relative_to_star = v_xy_star - v_xy_spaceship
 
-    return v_xy_spaceship_relative_to_star
+    return utils.m_pr_s_to_AU_pr_yr(v_xy_spaceship_relative_to_star)
 
 
 def print_all_information() -> str | float:
@@ -150,14 +148,13 @@ def print_all_information() -> str | float:
 
     v_r_star = np.array([v_r1_star, v_r2_star])
     v_xy_star = radiell_til_kartesisk(v_r_star)
-    print(f"Cartesian coordinates of spaceship relative to reference stars (m/s): ({v_xy_star[0]}, {v_xy_star[1]})")
+    print(f"Cartesian coordinates of Frogstar relative to reference stars (m/s): ({v_xy_star[0]}, {v_xy_star[1]})")
     print()
 
     v_xy_spaceship_relative_to_star = kartesisk_fart_rakett(0, 0)
+    v_xy_spaceship_relative_to_star = np.array([utils.AU_pr_yr_to_m_pr_s(v_xy_spaceship_relative_to_star[0]), utils.AU_pr_yr_to_m_pr_s(v_xy_spaceship_relative_to_star[1])])
     print(f"Fart til romskip i kartesiske koordinater relativt til Frogstar (m/s): {v_xy_spaceship_relative_to_star}")
     print()
-
-
 
 
 

@@ -2,14 +2,11 @@
 # Program som plotter numeriske planetbaner over analytiske planetbaner
 import numpy as np
 from numba import njit
-
-#print(numba.__version__)
+import matplotlib.pyplot as plt
 
 import ast2000tools.utils as utils
 import ast2000tools.constants as const
 seed = utils.get_seed('oafincke')
-import numpy as np
-import matplotlib.pyplot as plt
 
 from ast2000tools.solar_system import SolarSystem
 system = SolarSystem(seed)
@@ -26,96 +23,113 @@ plt.rcParams['legend.fontsize'] = 20
 
 
 @njit
-def akselerasjon(r_vector: np.ndarray[float], G:float, M:float) -> np.ndarray:
+def akselerasjon(r_vector: np.ndarray, G:float, M:float) -> np.ndarray:
     """Finner akselerasjonen ved Newtons andre lov a = F/m der m er massen
     til sola og F er gravitasjonskraften mellom planeten og stjernen, 
     F = -(GM*r_hat)/r**2. Krafta er negativ fordi den er tiltrekkende og peker
     fra planeten mot stjernen, mens enhetsvektoren peker fra sola mot planeten.
     
     Parametere: 
-    r_vec (np.ndarray[float]): posisjonen til planeten i x- og y-koordinater [AU]
-    M (float): stjernemassen [i solmasser]
-    G (float): gravitasjonskonstanten i AU-enheter
-    r (float): absoluttverdien til r_vec [AU]
+    r_vec (np.ndarray): current position of planet in x- og y-coordinates (AU)
+    M (float): star mass (solar masses)
+    G (float): gravitational constant (AU units)
+    r (float): absolute value [AU]
     
     Returnerer:
-    aks (np.ndarray[float]): akselerasjon i x- og y-retning [AU/year²]
+    aks (np.ndarray): acceleration in x- og y-coordinates (AU/year²)
     """
     r = np.sqrt(r_vector[0]**2 + r_vector[1]**2)
 
-    return - G*M / r**3 * r_vector
+    return -G*M / r**3 * r_vector
 
     
 @njit
-def numerisk_bane(r0, v0, G, M, P, runder=1):
-    """Plotter de numeriske banene ved hjelp av leap-frog metoden.
+def numerisk_bane(r0:np.ndarray, v0:np.ndarray, G:float, M:float, P:float, 
+                  rounds:float=1) -> np.ndarray | int:
+    """Plotter de numeriske banene ved hjelp av Leap-Frog metoden.
     
     Parametere: 
-    runder (float): default satt til 20 runder av hjemplaneten vår
-    P (float): rundetid, default satt til perioden til hjemplaneten vår (s)
-        
-    T_tot (float): total kjøretid [years]
-    time_step_pr_year (int): antall tidssteg per år
-    time_steps (float): antall tidssteg
-    dt (float): tidssteg (year)
-    t (float): løpende tid [years]
-        
-    r_vec (ndarray(time_steps, 2)): beskriver posisjonen til planeten over 
-                                    tid i x- og y-koordinater.
-    v_vec: samme som r_vec bare med hastighet
-    a_vec: samme som r_vec bare med akselerasjon
-    i (int): teller
+    r0 (ndarray): initial position of planet (AU)
+    v0 (ndarray): initial velocity of planet (AU/year)
+    G (float): gravitational constant (AU-units)
+    M (flaot): mass of star (in solar masses)
+    P (float): period of home planet (years)
+    rounds (float): rounds of simulation for home planet
 
     Returnerer:
-    r-vec (ndarray(time_steps, 2)): Planetens x- og y-koordinater over tid
-    dt (float): tidssteg
-    T_tot (float): total tid
+    r_vec (ndarray): all simulated position x- and y-coordinates of planet
+    v_vec (ndarray): all simulated velocity x- and y-coordinates of planet
+    dt_p (float): timestep in simulation (years)
     """
-    T_tot = P * runder  
-    time_steps_pr_year = 1e5
-    time_steps = int(T_tot * time_steps_pr_year)
-    dt = T_tot / time_steps
+    T_tot = P * rounds  # total simulation time
+    time_steps_pr_year = 1e6
+    total_time_steps = int(T_tot * time_steps_pr_year)
+    dt_p = T_tot / total_time_steps
 
-    # bevegelsesvektorer
-    r_vec = np.zeros((time_steps + 1, 2))
-    v_vec = np.zeros((time_steps + 1, 2))
-    a_vec = np.zeros((time_steps + 1, 2))
+    # lists for storing information about movement
+    r_vec = np.zeros((total_time_steps + 1, 2))
+    v_vec = np.zeros((total_time_steps + 1, 2))
+    a_vec = np.zeros((total_time_steps + 1, 2))
         
-    # initialverdier
+    # setting initial values
     r_vec[0] = r0
     v_vec[0] = v0
     a_vec[0] = akselerasjon(r0, G, M)
 
-    # Bruker Leap_Frog
-    for i in range(time_steps):
-        r_vec[i+1] = r_vec[i] + v_vec[i]*dt + 0.5*a_vec[i]*dt**2         
+    # Bruker Leap-Frog
+    for i in range(total_time_steps):
+        r_vec[i+1] = r_vec[i] + v_vec[i]*dt_p + 0.5*a_vec[i]*dt_p**2         
         a_vec[i+1] = akselerasjon(r_vec[i+1], G, M)
-        v_vec[i+1] = v_vec[i] + 0.5*(a_vec[i] + a_vec[i+1])*dt
+        v_vec[i+1] = v_vec[i] + 0.5*(a_vec[i] + a_vec[i+1])*dt_p
 
-    return r_vec, v_vec, dt
+    return r_vec, v_vec, dt_p
     
 
-def planet_bane(i:int, runder=1):
-    """I er indeksen til planeten vi vil finne baneinformasjonen til"""
+def planet_bane(i:int, rounds:float=1) -> np.ndarray | float:
+    """This function define constants and set initial conditions before calling
+    a function that numerically calculate the orbits of the planet.
+
+    Params: 
+    i (int): index of planet that we calculate orbits for
+    rounds (float): the time of simulation is determined by the number of rounds
+                    of planet 0.
+    Returns:
+    r_vec (ndarray): positions of planet i (AU)
+    v_vec (ndarray): velocities at corresponding position (AY/year)
+    dt_p (float): timesteps used in planet orbit simulation
+    """
     G = const.G_sol
     M = system.star_mass 
-    # rundetiden til planet 0. Det sørger for at dt er lik for alle planeter
-    P = np.sqrt(4 * np.pi**2 * system.semi_major_axes[0]**3 / (const.G_sol * (system.star_mass + system.masses[0])))
+    # Perioden til planet 0. Den sørger for at dt_p er lik for alle planeter
+    P = np.sqrt(4*np.pi**2 * system.semi_major_axes[0]**3 / (G * (M + system.masses[0])))
 
-    x, y = system.initial_positions[0][i], system.initial_positions[1][i]
-    r0 = np.array([x, y])
-    vx, vy = system.initial_velocities[0][i], system.initial_velocities[1][i]
-    v0 = np.array([vx, vy])
-                                                             
-    r_vec, v_vec, dt = numerisk_bane(r0, v0, G, M, P, runder)    
+    x0, y0 = system.initial_positions[0][i], system.initial_positions[1][i]
+    vx0, vy0 = system.initial_velocities[0][i], system.initial_velocities[1][i]
+    r0 = np.array([x0, y0])
+    v0 = np.array([vx0, vy0])
 
-    return r_vec, v_vec, dt 
+    r_vec, v_vec, dt_p = numerisk_bane(r0, v0, G, M, P, rounds)    
 
-
+    return r_vec, v_vec, dt_p 
 
 
 if __name__ == "__main__":
-    r, v, dt = planet_bane(0)
-    plt.plot(r[:,0], r[:,1])
-    plt.axis('equal')
-    plt.show()
+    # simulating orbits
+    r0, v0, dt_p = planet_bane(0, 7)
+    r1, v1, dt_p = planet_bane(1, 7)
+    r2, v2, dt_p = planet_bane(2, 7)
+    r3, v3, dt_p = planet_bane(3, 7)
+    r4, v4, dt_p = planet_bane(4, 7)
+    r5, v5, dt_p = planet_bane(5, 7)
+    r6, v6, dt_p = planet_bane(6, 7)
+    r7, v7, dt_p = planet_bane(7, 7)
+
+    # sort the information
+    planet_orbits = np.stack((r0, r1, r2, r3, r4, r5, r6, r7))
+    planet_velocities = np.stack((v0, v1, v2, v3, v4, v5, v6, v7))
+    dt_p = np.array(dt_p)
+
+    # saving information in file
+    np.savez("planet_information_7_rounds", planet_orbits=planet_orbits, \
+                                             planet_velocities=planet_velocities, \
+                                             dt_p=dt_p)
